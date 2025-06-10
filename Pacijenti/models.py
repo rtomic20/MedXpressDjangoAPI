@@ -60,9 +60,12 @@ class MedicinskaSestra(models.Model):
         return f"Sestra {self.korisnik.ime} {self.korisnik.prezime}"
 
 class Infirmary (models.Model):
+    Infirmary_name=models.CharField(max_length=200,blank=True,null=True)
     doktor=models.ForeignKey(Doktor,on_delete=models.CASCADE,related_name="doctor")
     medicinska_sestra=models.ForeignKey(MedicinskaSestra,on_delete=models.CASCADE,related_name="sestre")
     
     long = models.DecimalField(max_digits=8, decimal_places=3) #longitute
     lat = models.DecimalField(max_digits=8, decimal_places=3)  #latitude 
     #Closest 45.3291838038609, 14.46972104435494
+    
+    

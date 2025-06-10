@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Korisnik, Pacijent
+from .models import Korisnik, Pacijent,Infirmary
 from django.contrib.auth.hashers import make_password,check_password
 
 class KorisnikSerializer(serializers.ModelSerializer):
@@ -42,3 +42,18 @@ class LoginSerializer(serializers.Serializer):
             "prezime": korisnik.prezime,
             "uloga": korisnik.uloga,
         }
+        
+class InfirmarySerilazer(serializers.ModelSerializer):
+    doktor_ime=serializers.SerializerMethodField()
+    sestra_ime=serializers.SerializerMethodField()
+    class Meta:
+        model:Infirmary
+        fields=['doktor','doktor_ime','medicinska_sestra','sestra_ime','long','lat']
+    
+    def get_doctor_ime(self,obj):
+        return f"{obj.doktor.korisnik.ime} {obj.doktor.korisnik.prezime}"
+
+    def get_sestra_ime(self,obj):
+        return f"{obj.medicinska_sestra.korisnik.ime} {obj.medicinska_sestra.korisnik.prezime}"
+
+

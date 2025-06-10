@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PacijentSerializer,LoginSerializer
-from .models import Korisnik, MedicinskaSestra
+from .serializers import PacijentSerializer,LoginSerializer,InfirmarySerilazer
+from .models import Korisnik, MedicinskaSestra,Infirmary
 
 class RegisterPacijentAPIView(APIView):
     def post(self, request):
@@ -13,6 +13,7 @@ class RegisterPacijentAPIView(APIView):
         else:
             print(serializer.errors) 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        h
 class LoginAPIView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -35,3 +36,11 @@ class LoginAPIView(APIView):
             return Response(response_data, status=200)
 
         return Response(serializer.errors, status=400)
+    
+class InfirmaryAPIView(APIView):
+    class InfirmaryListAPIView(APIView):
+        def get(self, request):
+            infirmaries = Infirmary.objects.all()
+            serializer = InfirmarySerilazer(infirmaries, many=True)
+            return Response(serializer.data)
+  
