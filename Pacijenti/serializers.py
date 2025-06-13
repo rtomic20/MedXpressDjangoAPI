@@ -46,15 +46,19 @@ class LoginSerializer(serializers.Serializer):
 class InfirmarySerilazer(serializers.ModelSerializer):
     doktor_ime=serializers.SerializerMethodField()
     sestra_ime=serializers.SerializerMethodField()
+    doktor_id = serializers.IntegerField(source='id')
     class Meta:
         model:Infirmary
-        fields=['doktor','doktor_ime','medicinska_sestra','sestra_ime','long','lat']
+        fields=['Infirmary_name','doktor','doktor_ime','medicinska_sestra','sestra_ime','long','lat']
     
     def get_doctor_ime(self,obj):
         return f"{obj.doktor.korisnik.ime} {obj.doktor.korisnik.prezime}"
 
     def get_sestra_ime(self,obj):
         return f"{obj.medicinska_sestra.korisnik.ime} {obj.medicinska_sestra.korisnik.prezime}"
+
+
+
 
 class DoktorSestraSerializer(serializers.Serializer):
     doktor_ime = serializers.CharField()

@@ -37,28 +37,34 @@ class LoginAPIView(APIView):
 
         return Response(serializer.errors, status=400)
     
-class InfirmaryAPIView(APIView):
-    class InfirmaryListAPIView(APIView):
-        def get(self, request):
-            infirmaries = Infirmary.objects.all()
-            serializer = InfirmarySerilazer(infirmaries, many=True)
-            return Response(serializer.data)
+class InfirmaryAPI(APIView):
+    def get(self, request):
+        infirmaries = Infirmary.objects.all()
+        serializer = InfirmarySerilazer(infirmaries, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = InfirmarySerilazer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
 
 class DoktorSestraAPIView(APIView):
     def get(self, request):
         rezultat = []
 
-        doktori = Doktor.objects.all()
+        doktori = Doktor.objects.select_related('korisnik').all()
         for doktor in doktori:
-            sestre = MedicinskaSestra.objects.filter(doktor=doktor)
-            sestre_imena = [
-                f"{sestra.korisnik.ime} {sestra.korisnik.prezime}" for sestra in sestre
-            ]
+            sestre = MedicinskaSestra.objects.filter(doktor=doktor).select_related('korisnik')
+            if sestre.exists():
+                sestra = sestre.first()
+                rezultat.append({
+                    "doktor_id":  doktor.korisnik.id,
+                    "doktor_ime": f"Dr. {doktor.korisnik.ime} {doktor.korisnik.prezime}",
+                    "sestra_id": sestra.korisnik.id,
+                    "sestra_ime": f"{sestra.korisnik.ime} {sestra.korisnik.prezime}"
+                })
 
-            rezultat.append({
-                "doktor_ime": f"Dr. {doktor.korisnik.ime} {doktor.korisnik.prezime}",
-                "medicinske_sestre": sestre_imena
-            })
-
-        serializer = DoktorSestraSerializer(rezultat, many=True)
-        return Response(serializer.data)
+        return Response(rezultat)
