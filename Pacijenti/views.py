@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PacijentSerializer,LoginSerializer,InfirmarySerilazer
-from .models import Korisnik, MedicinskaSestra,Infirmary
+from .serializers import PacijentSerializer,LoginSerializer,InfirmarySerilazer,DoktorSestraSerializer
+from .models import Korisnik, MedicinskaSestra,Infirmary,Doktor
 
 class RegisterPacijentAPIView(APIView):
     def post(self, request):
@@ -43,4 +43,22 @@ class InfirmaryAPIView(APIView):
             infirmaries = Infirmary.objects.all()
             serializer = InfirmarySerilazer(infirmaries, many=True)
             return Response(serializer.data)
-  
+
+class DoktorSestraAPIView(APIView):
+    def get(self, request):
+        rezultat = []
+
+        doktori = Doktor.objects.all()
+        for doktor in doktori:
+            sestre = MedicinskaSestra.objects.filter(doktor=doktor)
+            sestre_imena = [
+                f"{sestra.korisnik.ime} {sestra.korisnik.prezime}" for sestra in sestre
+            ]
+
+            rezultat.append({
+                "doktor_ime": f"Dr. {doktor.korisnik.ime} {doktor.korisnik.prezime}",
+                "medicinske_sestre": sestre_imena
+            })
+
+        serializer = DoktorSestraSerializer(rezultat, many=True)
+        return Response(serializer.data)

@@ -56,4 +56,8 @@ class InfirmarySerilazer(serializers.ModelSerializer):
     def get_sestra_ime(self,obj):
         return f"{obj.medicinska_sestra.korisnik.ime} {obj.medicinska_sestra.korisnik.prezime}"
 
+class DoktorSestraSerializer(serializers.Serializer):
+    doktor_ime = serializers.CharField()
+    medicinske_sestre = serializers.ListField(child=serializers.CharField())
+
 
