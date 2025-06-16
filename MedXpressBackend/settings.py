@@ -78,9 +78,9 @@ WSGI_APPLICATION = 'MedXpressBackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'MedXpress',#MedXpress_kopija            
+        'NAME': 'MedXpress_kopija',#MedXpress            
         'USER': 'postgres',
-        'PASSWORD': '#2222d6#e0920f',#12345
+        'PASSWORD': '12345',# #2222d6#e0920f
         'HOST': 'localhost',            
         'PORT': '5432',
     }
@@ -129,7 +129,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+APPEND_SLASH = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
 ]

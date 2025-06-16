@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Korisnik, Pacijent,Infirmary
+from .models import Korisnik, Pacijent,Infirmary,MedicinskaSestra
 from django.contrib.auth.hashers import make_password,check_password
 
 class KorisnikSerializer(serializers.ModelSerializer):
@@ -42,21 +42,32 @@ class LoginSerializer(serializers.Serializer):
             "prezime": korisnik.prezime,
             "uloga": korisnik.uloga,
         }
-        
-class InfirmarySerilazer(serializers.ModelSerializer):
-    doktor_ime=serializers.SerializerMethodField()
-    sestra_ime=serializers.SerializerMethodField()
-    doktor_id = serializers.IntegerField(source='id')
-    class Meta:
-        model:Infirmary
-        fields=['Infirmary_name','doktor','doktor_ime','medicinska_sestra','sestra_ime','long','lat']
     
-    def get_doctor_ime(self,obj):
+
+class InfirmarySerializer(serializers.ModelSerializer):
+    doktor_ime = serializers.SerializerMethodField()
+    sestra_ime = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Infirmary
+        fields = ['Infirmary_name', 'doktor', 'doktor_ime', 'medicinska_sestra', 'sestra_ime', 'long', 'lat']
+
+    def get_doktor_ime(self, obj):
         return f"{obj.doktor.korisnik.ime} {obj.doktor.korisnik.prezime}"
 
-    def get_sestra_ime(self,obj):
+    def get_sestra_ime(self, obj):
         return f"{obj.medicinska_sestra.korisnik.ime} {obj.medicinska_sestra.korisnik.prezime}"
 
+    def create(self, validated_data):
+        sestra_korisnik_id = self.initial_data.get("medicinska_sestra")
+
+        try:
+            sestra = MedicinskaSestra.objects.get(korisnik_id=sestra_korisnik_id)
+            validated_data["medicinska_sestra"] = sestra
+        except MedicinskaSestra.DoesNotExist:
+            raise serializers.ValidationError({"medicinska_sestra": "Ne postoji sestra s tim korisnik_id."})
+
+        return super().create(validated_data)
 
 
 

@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PacijentSerializer,LoginSerializer,InfirmarySerilazer,DoktorSestraSerializer
+from .serializers import PacijentSerializer,LoginSerializer,InfirmarySerializer,DoktorSestraSerializer
 from .models import Korisnik, MedicinskaSestra,Infirmary,Doktor
 
 class RegisterPacijentAPIView(APIView):
@@ -40,31 +40,36 @@ class LoginAPIView(APIView):
 class InfirmaryAPI(APIView):
     def get(self, request):
         infirmaries = Infirmary.objects.all()
-        serializer = InfirmarySerilazer(infirmaries, many=True)
+        serializer = InfirmarySerializer(infirmaries, many=True)
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = InfirmarySerilazer(data=request.data)
+        serializer = InfirmarySerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
+        print("Greške:", serializer.errors)
         return Response(serializer.errors, status=400)
-
 
 class DoktorSestraAPIView(APIView):
     def get(self, request):
         rezultat = []
-
         doktori = Doktor.objects.select_related('korisnik').all()
-        for doktor in doktori:
-            sestre = MedicinskaSestra.objects.filter(doktor=doktor).select_related('korisnik')
-            if sestre.exists():
-                sestra = sestre.first()
-                rezultat.append({
-                    "doktor_id":  doktor.korisnik.id,
-                    "doktor_ime": f"Dr. {doktor.korisnik.ime} {doktor.korisnik.prezime}",
-                    "sestra_id": sestra.korisnik.id,
-                    "sestra_ime": f"{sestra.korisnik.ime} {sestra.korisnik.prezime}"
-                })
 
+        for doktor in doktori:
+            try:
+                sestre = MedicinskaSestra.objects.filter(doktor=doktor).select_related('korisnik')
+                if sestre.exists():
+                    sestra = sestre.first()
+                    rezultat.append({
+                        "doktor_id": doktor.pk,
+                        "doktor_ime": f"Dr. {doktor.korisnik.ime} {doktor.korisnik.prezime}",
+                        "sestra_id": sestra.pk,
+                        "sestra_ime": f"{sestra.korisnik.ime} {sestra.korisnik.prezime}"
+                    })
+            except Exception as e:
+                print(f"Greška za doktora {doktor}: {e}") 
         return Response(rezultat)
+
+
+

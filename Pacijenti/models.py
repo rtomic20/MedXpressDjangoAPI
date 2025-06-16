@@ -66,6 +66,6 @@ class Infirmary (models.Model):
     
     long = models.DecimalField(max_digits=8, decimal_places=3) #longitute
     lat = models.DecimalField(max_digits=8, decimal_places=3)  #latitude 
-    #Closest 45.3291838038609, 14.46972104435494
+    #Closest 45.3229931055812, 14.460150661377616
     
     
