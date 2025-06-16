@@ -42,10 +42,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',           
+    'corsheaders.middleware.CorsMiddleware', 
+    'django.middleware.security.SecurityMiddleware',    
+    'django.middleware.common.CommonMiddleware',       
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -78,9 +78,9 @@ WSGI_APPLICATION = 'MedXpressBackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'MedXpress_kopija',#MedXpress            
+        'NAME': 'MedXpress',#MedXpress_kopija            
         'USER': 'postgres',
-        'PASSWORD': '12345',##2222d6#e0920f
+        'PASSWORD': '#2222d6#e0920f',#12345
         'HOST': 'localhost',            
         'PORT': '5432',
     }
@@ -117,8 +117,8 @@ USE_I18N = True
 
 USE_TZ = True
 
-CORS_ALLOW_ALL_ORIGINS = True
-
+CORS_ALLOW_ALL_ORIGINS = False
+#CORS_ALLOW_CREDENTIALS = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
