@@ -78,9 +78,9 @@ WSGI_APPLICATION = 'MedXpressBackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'MedXpress_kopija',#MedXpress            
+        'NAME': 'MedXpress',#MedXpress_kopija            
         'USER': 'postgres',
-        'PASSWORD': '12345',# #2222d6#e0920f
+        'PASSWORD': '#2222d6#e0920f',# 12345
         'HOST': 'localhost',            
         'PORT': '5432',
     }

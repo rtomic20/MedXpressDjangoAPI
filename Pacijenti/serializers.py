@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Korisnik, Pacijent,Infirmary,MedicinskaSestra
+from .models import Korisnik, Pacijent,Infirmary,MedicinskaSestra,Doktor
 from django.contrib.auth.hashers import make_password,check_password
 
 class KorisnikSerializer(serializers.ModelSerializer):
@@ -22,6 +22,11 @@ class PacijentSerializer(serializers.ModelSerializer):
         korisnik = Korisnik.objects.create(**korisnik_data)
         pacijent = Pacijent.objects.create(korisnik=korisnik)
         return pacijent
+    
+class SestraInfoSerializer(serializers.Serializer):
+    korisnik_id = serializers.IntegerField(source='korisnik.id')
+    ime = serializers.CharField(source='korisnik.ime')
+    prezime = serializers.CharField(source='korisnik.prezime')
     
 class LoginSerializer(serializers.Serializer):
     korisnicko_ime = serializers.CharField()
@@ -60,19 +65,154 @@ class InfirmarySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         sestra_korisnik_id = self.initial_data.get("medicinska_sestra")
+        doktor_id = self.initial_data.get("doktor")
 
-        try:
-            sestra = MedicinskaSestra.objects.get(korisnik_id=sestra_korisnik_id)
-            validated_data["medicinska_sestra"] = sestra
-        except MedicinskaSestra.DoesNotExist:
-            raise serializers.ValidationError({"medicinska_sestra": "Ne postoji sestra s tim korisnik_id."})
-
+        if sestra_korisnik_id:
+            try:
+                sestra = MedicinskaSestra.objects.get(
+                    korisnik_id=sestra_korisnik_id,
+                    doktor_id=doktor_id  
+                )
+                validated_data["medicinska_sestra"] = sestra
+            except MedicinskaSestra.DoesNotExist:
+                raise serializers.ValidationError({
+                    "medicinska_sestra": "Ne postoji sestra s tim korisnik_id pod tim doktorom."
+                })
+        else:
+            validated_data["medicinska_sestra"] = None
+            
         return super().create(validated_data)
 
-
-
 class DoktorSestraSerializer(serializers.Serializer):
-    doktor_ime = serializers.CharField()
-    medicinske_sestre = serializers.ListField(child=serializers.CharField())
+    doktor_id = serializers.IntegerField(source='korisnik.id')
+    ime = serializers.CharField(source='korisnik.ime')
+    prezime = serializers.CharField(source='korisnik.prezime')
+    email = serializers.EmailField(source='korisnik.email')
+    specijalizacija = serializers.CharField()
+    razina_specijalizacije = serializers.CharField()
+    sestra = serializers.SerializerMethodField()
 
+    def get_sestra(self, obj):
+        sestra = obj.sestre.first() 
+        if sestra:
+            return {
+                "medicinskasestra_id": sestra.korisnik_id,
+                "ime": sestra.korisnik.ime,
+                "prezime": sestra.korisnik.prezime,
+                "radno_iskustvo": sestra.radno_iskustvo,
+                "specializirane_tehnike": sestra.specializirane_tehnike
+            }
+        else:
+            return None
+     
+class SestraNestedSerializer(serializers.Serializer):
+    ime = serializers.CharField()
+    prezime = serializers.CharField()
+    email = serializers.EmailField()
+    korisnicko_ime = serializers.CharField()
+    lozinka = serializers.CharField(write_only=True)
+    radno_iskustvo = serializers.CharField()
+    specializirane_tehnike = serializers.CharField()
+
+class DoktorSestraCreateSerializer(serializers.Serializer):
+
+    ime = serializers.CharField()
+    prezime = serializers.CharField()
+    email = serializers.EmailField()
+    korisnicko_ime = serializers.CharField()
+    lozinka = serializers.CharField(write_only=True)
+    specijalizacija = serializers.CharField()
+    razina_specijalizacije = serializers.CharField()
+
+    sestra = SestraNestedSerializer()
+
+    def create(self, validated_data):
+        sestra_data = validated_data.pop('sestra')
+        lozinka = validated_data.pop('lozinka')
+
+        korisnik_doktor = Korisnik.objects.create(
+            ime=validated_data['ime'],
+            prezime=validated_data['prezime'],
+            email=validated_data['email'],
+            korisnicko_ime=validated_data['korisnicko_ime'],
+            lozinka_hash=make_password(lozinka),
+            uloga='doktor'
+        )
+
+        doktor = Doktor.objects.create(
+            korisnik=korisnik_doktor,
+            specijalizacija=validated_data['specijalizacija'],
+            razina_specijalizacije=validated_data['razina_specijalizacije']
+        )
+        
+        korisnik_sestra = Korisnik.objects.create(
+            ime=sestra_data['ime'],
+            prezime=sestra_data['prezime'],
+            email=sestra_data['email'],
+            korisnicko_ime=sestra_data['korisnicko_ime'],
+            lozinka_hash=make_password(sestra_data['lozinka']),
+            uloga='sestra'
+        )
+
+        MedicinskaSestra.objects.create(
+            korisnik=korisnik_sestra,
+            doktor=doktor,
+            radno_iskustvo=sestra_data['radno_iskustvo'],
+            specializirane_tehnike=sestra_data['specializirane_tehnike']
+        )
+
+        return doktor
+
+class KorisnikSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Korisnik
+        fields = ['ime', 'prezime', 'email', 'korisnicko_ime']
+
+class PacijentSerializer(serializers.ModelSerializer):
+    korisnik = KorisnikSerializer()  
+    
+    class Meta:
+        model = Pacijent
+        fields = ['korisnik', 'povijest_bolesti', 'simptomi_bolesti', 'primljena_cijepiva']
+class SestraUpdateSerializer(serializers.Serializer):
+    ime = serializers.CharField()
+    prezime = serializers.CharField()
+    email = serializers.EmailField()
+    radno_iskustvo = serializers.CharField()
+    specializirane_tehnike = serializers.CharField()
+
+class DoktorSestraFullUpdateSerializer(serializers.Serializer):
+    ime = serializers.CharField(source='korisnik.ime')
+    prezime = serializers.CharField(source='korisnik.prezime')
+    email = serializers.EmailField(source='korisnik.email')
+    specijalizacija = serializers.CharField()
+    razina_specijalizacije = serializers.CharField()
+
+    sestra = serializers.DictField()
+
+    def update(self, instance, validated_data):
+        # update Doktor.korisnik (ime, prezime, email)
+        korisnik_data = validated_data.pop('korisnik')
+        instance.korisnik.ime = korisnik_data.get('ime', instance.korisnik.ime)
+        instance.korisnik.prezime = korisnik_data.get('prezime', instance.korisnik.prezime)
+        instance.korisnik.email = korisnik_data.get('email', instance.korisnik.email)
+        instance.korisnik.save()
+
+        # update Doktor
+        instance.specijalizacija = validated_data.get('specijalizacija', instance.specijalizacija)
+        instance.razina_specijalizacije = validated_data.get('razina_specijalizacije', instance.razina_specijalizacije)
+        instance.save()
+
+        # update Sestra
+        sestra_obj = instance.sestre.first()
+        if sestra_obj and 'sestra' in validated_data:
+            sestra_data = validated_data['sestra']
+            sestra_obj.korisnik.ime = sestra_data.get('ime', sestra_obj.korisnik.ime)
+            sestra_obj.korisnik.prezime = sestra_data.get('prezime', sestra_obj.korisnik.prezime)
+            sestra_obj.radno_iskustvo = sestra_data.get('radno_iskustvo', sestra_obj.radno_iskustvo)
+            sestra_obj.specializirane_tehnike = sestra_data.get('specializirane_tehnike', sestra_obj.specializirane_tehnike)
+            sestra_obj.korisnik.save()
+            sestra_obj.save()
+
+        return instance
 
