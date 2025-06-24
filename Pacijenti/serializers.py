@@ -55,7 +55,7 @@ class InfirmarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Infirmary
-        fields = ['Infirmary_name', 'doktor', 'doktor_ime', 'medicinska_sestra', 'sestra_ime', 'long', 'lat']
+        fields = ['id','Infirmary_name', 'doktor', 'doktor_ime', 'medicinska_sestra', 'sestra_ime', 'long', 'lat']
 
     def get_doktor_ime(self, obj):
         return f"{obj.doktor.korisnik.ime} {obj.doktor.korisnik.prezime}"
@@ -191,19 +191,16 @@ class DoktorSestraFullUpdateSerializer(serializers.Serializer):
     sestra = serializers.DictField()
 
     def update(self, instance, validated_data):
-        # update Doktor.korisnik (ime, prezime, email)
         korisnik_data = validated_data.pop('korisnik')
         instance.korisnik.ime = korisnik_data.get('ime', instance.korisnik.ime)
         instance.korisnik.prezime = korisnik_data.get('prezime', instance.korisnik.prezime)
         instance.korisnik.email = korisnik_data.get('email', instance.korisnik.email)
         instance.korisnik.save()
 
-        # update Doktor
         instance.specijalizacija = validated_data.get('specijalizacija', instance.specijalizacija)
         instance.razina_specijalizacije = validated_data.get('razina_specijalizacije', instance.razina_specijalizacije)
         instance.save()
 
-        # update Sestra
         sestra_obj = instance.sestre.first()
         if sestra_obj and 'sestra' in validated_data:
             sestra_data = validated_data['sestra']
@@ -216,3 +213,31 @@ class DoktorSestraFullUpdateSerializer(serializers.Serializer):
 
         return instance
 
+class InfirmaryUpdateSerializer(serializers.Serializer):
+    Infirmary_name = serializers.CharField(required=False)
+    doktor = serializers.PrimaryKeyRelatedField(read_only=True)
+    sestra = serializers.PrimaryKeyRelatedField(read_only=True)
+    lat = serializers.FloatField(required=False)
+    long = serializers.FloatField(required=False)
+
+    def update(self, instance, validated_data):
+        instance.Infirmary_name = validated_data.get('Infirmary_name', instance.Infirmary_name)
+        instance.lat = validated_data.get('lat', instance.lat)
+        instance.long = validated_data.get('long', instance.long)
+
+        if 'doktor' in validated_data:
+            try:
+                doktor = Doktor.objects.get(id=validated_data['doktor'])
+                instance.doktor = doktor
+            except Doktor.DoesNotExist:
+                raise serializers.ValidationError({"doktor": "Doktor s ovim ID-em ne postoji."})
+
+        if 'medicinska_sestra' in validated_data:
+            try:
+                sestra = MedicinskaSestra.objects.get(korisnik_id=validated_data['medicinska_sestra'])
+                instance.medicinska_sestra = sestra
+            except MedicinskaSestra.DoesNotExist:
+                raise serializers.ValidationError({"medicinska_sestra": "Sestra s ovim korisnik_id ne postoji."})
+
+        instance.save()
+        return instance

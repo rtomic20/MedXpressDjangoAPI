@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterPacijentAPIView,LoginAPIView,InfirmaryAPI,DoktorSestraAPIView,DoktorSestraCreateAPI,PacientsViewAPI,DoctorRetrieveUpdateDestroyAPIView
+from .views import RegisterPacijentAPIView,LoginAPIView,InfirmaryAPI,DoktorSestraAPIView,DoktorSestraCreateAPI,PacientsViewAPI,DoctorRetrieveUpdateDestroyAPIView,InfirmaryRetrieveUpdateDestroyAPIView
 
 urlpatterns = [
     path('register/', RegisterPacijentAPIView.as_view(), name='register'),
@@ -9,4 +9,5 @@ urlpatterns = [
     path('doktor_sestra_create/',DoktorSestraCreateAPI.as_view(),name='doctor_sestra_create'),
     path('pacients/',PacientsViewAPI.as_view(),name='Pacijenti'),
     path('doctors/<int:pk>', DoctorRetrieveUpdateDestroyAPIView.as_view(), name='doktor_detail'),
+    path('infirmaries/<int:pk>',InfirmaryRetrieveUpdateDestroyAPIView.as_view(),name='infirmary_detail')
 ]
