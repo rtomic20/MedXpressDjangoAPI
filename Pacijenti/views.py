@@ -9,6 +9,8 @@ from .serializers import (
     InfirmaryUpdateSerializer
 )
 from .models import Korisnik, MedicinskaSestra, Infirmary, Doktor, Pacijent
+from django.http import JsonResponse
+
 
 class RegisterPacijentAPIView(APIView):
     def post(self, request):
@@ -46,7 +48,11 @@ class InfirmaryAPI(APIView):
     def get(self, request):
         infirmaries = Infirmary.objects.all()
         serializer = InfirmarySerializer(infirmaries, many=True)
-        return Response(serializer.data)
+        return JsonResponse(
+            serializer.data,
+            safe=False,
+            json_dumps_params={'ensure_ascii': False}
+        )
 
     def post(self, request):
         serializer = InfirmarySerializer(data=request.data)
