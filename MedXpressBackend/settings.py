@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-9_*@92(zd!71q$4kdn6ldg#twqgd^ut#iz+@)8(-jjgq+$^equ
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['10.0.2.2', 'localhost', '127.0.0.1','58f232971445.ngrok-free.app']
+ALLOWED_HOSTS = ['10.0.2.2', 'localhost', '127.0.0.1','8495dd0464fd.ngrok-free.app']
 
 # Application definition
 
@@ -67,7 +67,7 @@ TEMPLATES = [
         },
     },
 ]
-
+ 
 WSGI_APPLICATION = 'MedXpressBackend.wsgi.application'
 
 
@@ -77,9 +77,9 @@ WSGI_APPLICATION = 'MedXpressBackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'MedXpress_kopija',#MedXpress_kopija          
+        'NAME': 'MedXpress_kopija',         
         'USER': 'postgres',
-        'PASSWORD': '12345',# 12345
+        'PASSWORD': '12345',
         'HOST': 'localhost',            
         'PORT': '5432',
     }
@@ -143,6 +143,6 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=60),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }

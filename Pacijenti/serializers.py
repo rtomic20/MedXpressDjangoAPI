@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Korisnik, Pacijent,Infirmary,MedicinskaSestra,Doktor
+from .models import Korisnik, Pacijent,Infirmary,MedicinskaSestra,Doktor,Conversation, Participant, Message, MessageStatus, Appointment, AppointmentAttendee
 from django.contrib.auth.hashers import make_password,check_password
 
 class KorisnikSerializer(serializers.ModelSerializer):
@@ -241,3 +241,59 @@ class InfirmaryUpdateSerializer(serializers.Serializer):
 
         instance.save()
         return instance
+
+class ParticipantSerializer(serializers.ModelSerializer):
+    korisnik_id = serializers.IntegerField(source='korisnik.id', read_only=True)
+    korisnicko_ime = serializers.CharField(source='korisnik.korisnicko_ime', read_only=True)
+
+    class Meta:
+        model = Participant
+        fields = ['id', 'korisnik_id', 'korisnicko_ime', 'role', 'joined_at', 'last_read_at']
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_role = serializers.CharField(source='sender.role', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'conversation', 'sender', 'sender_role', 'body', 'type', 'created_at', 'edited_at', 'is_deleted']
+        read_only_fields = ['created_at', 'edited_at', 'sender_role']
+
+class MessageStatusSerializer(serializers.ModelSerializer):
+    participant_id = serializers.IntegerField(source='participant.id', read_only=True)
+
+    class Meta:
+        model = MessageStatus
+        fields = ['id', 'message', 'participant_id', 'delivered_at', 'read_at']
+
+class ConversationSerializer(serializers.ModelSerializer):
+    participants = ParticipantSerializer(many=True, read_only=True)
+    last_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = ['id', 'title', 'pacijent', 'doktor', 'sestra', 'created_at', 'updated_at', 'participants', 'last_message']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_last_message(self, obj):
+        msg = obj.messages.order_by('-created_at').first()
+        return MessageSerializer(msg).data if msg else None
+    
+class AppointmentAttendeeSerializer(serializers.ModelSerializer):
+    korisnik_id = serializers.IntegerField(source='korisnik.id', read_only=True)
+    korisnicko_ime = serializers.CharField(source='korisnik.korisnicko_ime', read_only=True)
+
+    class Meta:
+        model = AppointmentAttendee
+        fields = ['id', 'appointment', 'korisnik_id', 'korisnicko_ime', 'role', 'response_status', 'reminder_offset_min', 'last_notified_at']
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    attendees = AppointmentAttendeeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id', 'pacijent', 'doktor', 'sestra', 'infirmary',
+            'title', 'note', 'start_time', 'end_time', 'status', 'priority',
+            'recurrence_rule', 'created_at', 'updated_at', 'attendees'
+        ]
+        read_only_fields = ['created_at', 'updated_at']

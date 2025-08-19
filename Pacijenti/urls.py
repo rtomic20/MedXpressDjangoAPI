@@ -1,5 +1,23 @@
 from django.urls import path
-from .views import RegisterPacijentAPIView,LoginAPIView,InfirmaryAPI,DoktorSestraAPIView,DoktorSestraCreateAPI,PacientsViewAPI,DoctorRetrieveUpdateDestroyAPIView,InfirmaryRetrieveUpdateDestroyAPIView
+from .views import (
+    RegisterPacijentAPIView,
+    LoginAPIView,
+    InfirmaryAPI,
+    DoktorSestraAPIView,
+    DoktorSestraCreateAPI,
+    PacientsViewAPI,
+    DoctorRetrieveUpdateDestroyAPIView,
+    InfirmaryRetrieveUpdateDestroyAPIView,
+
+    ConversationsAPI,
+    ConversationParticipantsAPI,
+    ConversationMessagesAPI,
+
+    AppointmentsAPI,
+    AppointmentDetailAPI,
+    AppointmentAttendeesAPI,
+    AppointmentRespondAPI,
+)
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
@@ -15,4 +33,14 @@ urlpatterns = [
     path('doctors/',DoktorSestraAPIView.as_view(),name="doktor"),
     path('doktor_sestra_create/',DoktorSestraCreateAPI.as_view(),name='doctor_sestra_create'),
     path('doctors/<int:pk>', DoctorRetrieveUpdateDestroyAPIView.as_view(), name='doktor_detail'),
+    
+    path("conversations/", ConversationsAPI.as_view(), name="conversation_list_create"),
+    path("conversations/<int:conv_id>/participants/", ConversationParticipantsAPI.as_view(), name="conversation_participants"),
+    path("conversations/<int:conv_id>/messages/", ConversationMessagesAPI.as_view(), name="conversation_messages"),
+    
+    path("appointments/", AppointmentsAPI.as_view(), name="appointment_list_create"),
+    path("appointments/<int:pk>/", AppointmentDetailAPI.as_view(), name="appointment_detail"),
+    path("appointments/<int:id>/attendees/", AppointmentAttendeesAPI.as_view(), name="appointment_attendees"),
+    path("appointments/<int:id>/attendees/<int:attendee_id>/", AppointmentAttendeesAPI.as_view(), name="appointment_attendee_delete"),
+    path("appointments/<int:id>/respond/", AppointmentRespondAPI.as_view(), name="appointment_respond"),
 ]
