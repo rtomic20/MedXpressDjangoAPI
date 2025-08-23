@@ -47,7 +47,27 @@ class LoginSerializer(serializers.Serializer):
             "prezime": korisnik.prezime,
             "uloga": korisnik.uloga,
         }
-    
+class KorisnikProfileSerializer(serializers.ModelSerializer):
+    korisnicko_ime = serializers.CharField(read_only=True)
+    uloga = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Korisnik
+        fields = ["id", "korisnicko_ime", "ime", "prezime", "email", "uloga"]
+        read_only_fields = ["id", "korisnicko_ime", "uloga"]
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user: Korisnik = self.context["user"]
+        if not check_password(attrs["old_password"], user.lozinka_hash):
+            raise serializers.ValidationError({"old_password": "Netočna sadašnja lozinka."})
+        if len(attrs["new_password"]) < 8:
+            raise serializers.ValidationError({"new_password": "Minimalno 8 znakova."})
+        return attrs
 
 class InfirmarySerializer(serializers.ModelSerializer):
     doktor_ime = serializers.SerializerMethodField()
@@ -163,17 +183,6 @@ class DoktorSestraCreateSerializer(serializers.Serializer):
 
         return doktor
 
-class KorisnikSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Korisnik
-        fields = ['ime', 'prezime', 'email', 'korisnicko_ime']
-
-class PacijentSerializer(serializers.ModelSerializer):
-    korisnik = KorisnikSerializer()  
-    
-    class Meta:
-        model = Pacijent
-        fields = ['korisnik', 'povijest_bolesti', 'simptomi_bolesti', 'primljena_cijepiva']
 class SestraUpdateSerializer(serializers.Serializer):
     ime = serializers.CharField()
     prezime = serializers.CharField()
@@ -243,13 +252,30 @@ class InfirmaryUpdateSerializer(serializers.Serializer):
         return instance
 
 class ParticipantSerializer(serializers.ModelSerializer):
-    korisnik_id = serializers.IntegerField(source='korisnik.id', read_only=True)
+    korisnik_id    = serializers.IntegerField(source='korisnik.id', read_only=True)
     korisnicko_ime = serializers.CharField(source='korisnik.korisnicko_ime', read_only=True)
+    ime            = serializers.CharField(source='korisnik.ime', read_only=True)
+    prezime        = serializers.CharField(source='korisnik.prezime', read_only=True)
+    full_name      = serializers.SerializerMethodField(read_only=True)
+
+    def get_full_name(self, obj):
+        ime = getattr(obj.korisnik, 'ime', '') or ''
+        prez = getattr(obj.korisnik, 'prezime', '') or ''
+        return (f"{ime} {prez}").strip() or obj.korisnik.korisnicko_ime
 
     class Meta:
-        model = Participant
-        fields = ['id', 'korisnik_id', 'korisnicko_ime', 'role', 'joined_at', 'last_read_at']
-
+        model  = Participant
+        fields = [
+            'id',
+            'korisnik_id',
+            'korisnicko_ime',
+            'ime',
+            'prezime',
+            'full_name',
+            'role',
+            'joined_at',
+            'last_read_at',
+        ]
 class MessageSerializer(serializers.ModelSerializer):
     sender_role = serializers.CharField(source='sender.role', read_only=True)
 

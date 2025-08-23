@@ -3,12 +3,13 @@ from rest_framework.generics import ListAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
 from django.db.models import Prefetch, Q
 from .serializers import (
     PacijentSerializer, LoginSerializer, InfirmarySerializer,
     DoktorSestraSerializer, DoktorSestraCreateSerializer,
     PacijentSerializer, DoktorSestraFullUpdateSerializer,
-    InfirmaryUpdateSerializer
+    InfirmaryUpdateSerializer,KorisnikProfileSerializer,ChangePasswordSerializer
 )
 from .models import Korisnik, MedicinskaSestra, Infirmary, Doktor, Pacijent,Conversation, Participant, Message, MessageStatus,Appointment, AppointmentAttendee
 from django.http import JsonResponse
@@ -27,24 +28,95 @@ class LoginAPIView(ListAPIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            korisnik = Korisnik.objects.get(korisnicko_ime=serializer.validated_data['korisnicko_ime'])
+            korisnik = Korisnik.objects.get(
+                korisnicko_ime=serializer.validated_data['korisnicko_ime']
+            )
+
             response_data = {
+                "id": korisnik.id,           
                 "ime": korisnik.ime,
                 "prezime": korisnik.prezime,
                 "uloga": korisnik.uloga,
             }
 
-            if korisnik.uloga == 'sestra':
+            if korisnik.uloga == 'pacijent':
+                try:
+                    pac = Pacijent.objects.get(korisnik=korisnik)
+                    response_data["pacijent_id"] = pac.pk   
+                except Pacijent.DoesNotExist:
+                    response_data["pacijent_id"] = None
+
+            elif korisnik.uloga == 'doktor':
+                try:
+                    doc = Doktor.objects.get(korisnik=korisnik)
+                    response_data["doktor_id"] = doc.pk
+                except Doktor.DoesNotExist:
+                    response_data["doktor_id"] = None
+
+            elif korisnik.uloga == 'sestra':
                 try:
                     sestra = MedicinskaSestra.objects.get(korisnik=korisnik)
+                    response_data["sestra_id"] = sestra.pk
                     doktor = sestra.doktor.korisnik
                     response_data["doktor_ime"] = f"Dr. {doktor.ime} {doktor.prezime}"
+                    response_data["doktor_id"] = sestra.doktor.pk
                 except MedicinskaSestra.DoesNotExist:
+                    response_data["sestra_id"] = None
                     response_data["doktor_ime"] = ""
+                    response_data["doktor_id"] = None
 
             return Response(response_data, status=200)
 
         return Response(serializer.errors, status=400)
+
+class KorisnikProfileAPI(APIView):
+    def get_object(self, pk):
+        try:
+            return Korisnik.objects.get(pk=pk)
+        except Korisnik.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        k = self.get_object(pk)
+        if not k:
+            return Response({"detail": "Korisnik nije pronađen."}, status=404)
+        return Response(KorisnikProfileSerializer(k).data, status=200)
+
+    def put(self, request, pk):
+        k = self.get_object(pk)
+        if not k:
+            return Response({"detail": "Korisnik nije pronađen."}, status=404)
+        s = KorisnikProfileSerializer(k, data=request.data)
+        if s.is_valid():
+            s.save()
+            return Response({"message": "Profil ažuriran.", "profile": s.data}, status=200)
+        return Response(s.errors, status=400)
+
+    def patch(self, request, pk):
+        k = self.get_object(pk)
+        if not k:
+            return Response({"detail": "Korisnik nije pronađen."}, status=404)
+        s = KorisnikProfileSerializer(k, data=request.data, partial=True)
+        if s.is_valid():
+            s.save()
+            return Response({"message": "Profil ažuriran.", "profile": s.data}, status=200)
+        return Response(s.errors, status=400)
+
+
+class ChangePasswordAPI(APIView):
+    def post(self, request, pk):
+        try:
+            k = Korisnik.objects.get(pk=pk)
+        except Korisnik.DoesNotExist:
+            return Response({"detail": "Korisnik nije pronađen."}, status=404)
+
+        s = ChangePasswordSerializer(data=request.data, context={"user": k})
+        if not s.is_valid():
+            return Response(s.errors, status=400)
+
+        k.lozinka_hash = make_password(s.validated_data["new_password"])
+        k.save(update_fields=["lozinka_hash"])
+        return Response({"message": "Lozinka promijenjena."}, status=200)
     
 class InfirmaryAPI(APIView):
     def get(self, request):
@@ -155,6 +227,8 @@ class ConversationsAPI(APIView):
                         "id": p.id,
                         "korisnik_id": p.korisnik_id,
                         "korisnicko_ime": p.korisnik.korisnicko_ime,
+                        "ime": p.korisnik.ime,           
+                        "prezime": p.korisnik.prezime,
                         "role": p.role,
                         "joined_at": p.joined_at,
                         "last_read_at": p.last_read_at,
@@ -186,6 +260,26 @@ class ConversationsAPI(APIView):
 
 
 class ConversationParticipantsAPI(APIView):
+    def get(self, request, conv_id):
+        try:
+            conv = Conversation.objects.get(pk=conv_id)
+        except Conversation.DoesNotExist:
+            return Response({"detail": "Conversation not found."}, status=404)
+
+        parts = conv.participants.select_related('korisnik').all().order_by('id')
+
+        data = [{
+            "id": p.id,
+            "korisnik_id": p.korisnik_id,
+            "korisnicko_ime": p.korisnik.korisnicko_ime,
+            "ime": p.korisnik.ime,               
+            "prezime": p.korisnik.prezime,       
+            "role": p.role,
+            "joined_at": p.joined_at,
+            "last_read_at": p.last_read_at,
+        } for p in parts]
+
+        return Response(data, status=200)
 
     def post(self, request, conv_id):
         try:
@@ -288,7 +382,7 @@ class AppointmentsAPI(APIView):
         if did:
             qs = qs.filter(doktor_id=did)
         if sid:
-            qs = qs.filter(sestra_id=sid)
+            qs = qs.filter(sestra_id=sid) 
         if t_from:
             qs = qs.filter(end_time__gte=t_from)
         if t_to:
@@ -314,6 +408,8 @@ class AppointmentsAPI(APIView):
                 "recurrence_rule": a.recurrence_rule,
                 "created_at": a.created_at,
                 "updated_at": a.updated_at,
+                "doktor_ime": f"Dr. {a.doktor.korisnik.ime} {a.doktor.korisnik.prezime}" if a.doktor_id else None,
+                "sestra_ime": f"{a.sestra.korisnik.ime} {a.sestra.korisnik.prezime}" if a.sestra_id else None, 
                 "attendees": [{
                     "id": at.id,
                     "korisnik_id": at.korisnik_id,

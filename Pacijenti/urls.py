@@ -8,6 +8,8 @@ from .views import (
     PacientsViewAPI,
     DoctorRetrieveUpdateDestroyAPIView,
     InfirmaryRetrieveUpdateDestroyAPIView,
+    ChangePasswordAPI,
+    KorisnikProfileAPI,
 
     ConversationsAPI,
     ConversationParticipantsAPI,
@@ -23,6 +25,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 urlpatterns = [
     path('register/', RegisterPacijentAPIView.as_view(), name='register'),
     path('login/', LoginAPIView.as_view(), name='login'),
+    path('korisnici/<int:pk>/', KorisnikProfileAPI.as_view(), name='korisnik-profile'),
+    path('korisnici/<int:pk>/change-password', ChangePasswordAPI.as_view(), name='korisnik-change-password'),
     
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
